@@ -15,10 +15,11 @@ blog_router = APIRouter(
 
 session = SessionLocal(bind=engine)
 
+
 @blog_router.get('/')
-async def blog_all(Authorize: AuthJWT = Depends()):
-    validate_authorize(Authorize)
-    return {"message": "is blog"}
+async def blog_all():
+    blogs = session.query(Blog).all()
+    return jsonable_encoder(blogs)
 
 
 @blog_router.post('/blog', status_code=status.HTTP_201_CREATED)
