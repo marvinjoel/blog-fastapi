@@ -60,3 +60,28 @@ async def get_blog_by_id(id: int, Authorize: AuthJWT = Depends()):
         if o.id == id:
             return jsonable_encoder(o)
     raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not alowed to carry out request")
+
+
+@blog_router.put('/update/{id}')
+async def update_blog(id: int, blog: BlogModel, Authorize: AuthJWT = Depends()):
+    validate_authorize(Authorize)
+
+    user_email = Authorize.get_jwt_subject()
+
+    current_user = session.query(User).filter(User.email == user_email).first()
+    if current_user.is_staff:
+        order_to_update = session.query(Blog).filter(Blog.id == id).first()
+        order_to_update.title = blog.title
+        order_to_update.body = blog.body
+        order_to_update.type_b = blog.type_b
+
+        session.commit()
+
+        response = {
+            "id": order_to_update.id,
+            "title": order_to_update.title,
+            "body": order_to_update.body,
+            "type_b": order_to_update.type_b
+        }
+
+        return jsonable_encoder(response)
