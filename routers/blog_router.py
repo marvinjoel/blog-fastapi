@@ -65,23 +65,40 @@ async def get_blog_by_id(id: int, Authorize: AuthJWT = Depends()):
 @blog_router.put('/update/{id}')
 async def update_blog(id: int, blog: BlogModel, Authorize: AuthJWT = Depends()):
     validate_authorize(Authorize)
+    subject = Authorize.get_jwt_subject()
+    current_user = session.query(User).filter(User.email == subject).first()
+    blogs = current_user.blog
 
-    user_email = Authorize.get_jwt_subject()
+    for o in blogs:
+        if o.id == id:
+            order_to_update = session.query(Blog).filter(Blog.id == id).first()
+            order_to_update.title = blog.title
+            order_to_update.body = blog.body
+            order_to_update.type_b = blog.type_b
+            session.commit()
+            response = {
 
-    current_user = session.query(User).filter(User.email == user_email).first()
-    if current_user.is_staff:
-        order_to_update = session.query(Blog).filter(Blog.id == id).first()
-        order_to_update.title = blog.title
-        order_to_update.body = blog.body
-        order_to_update.type_b = blog.type_b
+                "id": order_to_update.id,
+                "title": order_to_update.title,
+                "body": order_to_update.body,
+                "type_b": order_to_update.type_b
+            }
+            return jsonable_encoder(response)
+    raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not alowed to carry out request")
 
-        session.commit()
 
-        response = {
-            "id": order_to_update.id,
-            "title": order_to_update.title,
-            "body": order_to_update.body,
-            "type_b": order_to_update.type_b
-        }
+@blog_router.delete('/delete/{id}', status_code=status.HTTP_204_NO_CONTENT)
+async def delete_an_blog(id: int, Authorize: AuthJWT = Depends()):
+    validate_authorize(Authorize)
+    subject = Authorize.get_jwt_subject()
+    current_user = session.query(User).filter(User.email == subject).first()
 
-        return jsonable_encoder(response)
+    blogs = current_user.blog
+    for o in blogs:
+        if o.id == id:
+            blog_to_delete = session.query(Blog).filter(Blog.id == id).first()
+            session.delete(blog_to_delete)
+            session.commit()
+
+            return blog_to_delete
+    raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not alowed to carry out request")
